@@ -10,7 +10,7 @@ db_url = os.getenv("DB_NAME")
 engine = create_async_engine(db_url)
 
 new_session = async_sessionmaker(
-    engine=engine,
+    engine,
     expire_on_commit=False,
 )
 
