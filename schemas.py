@@ -11,8 +11,13 @@ class SBookAdd(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class SBookGet(SBookAdd):
     id: int
 
-class SBookUpdate(SBookAdd):
-    pass
+
+class SBookFilter(SBookAdd):
+    name: str | None = Field(max_length=256, default=None)
+    author: str | None = Field(max_length=256, default=None)
+    year: int | None = Field(gt=1800, le=datetime.datetime.now().year, default=None)
+    publisher: str | None = Field(max_length=10, default=None)
