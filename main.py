@@ -6,7 +6,7 @@ from router import router as book_router
 app = FastAPI()
 app.include_router(book_router)
 
-@app.get("/")
+@app.get("/", tags=["Start page"])
 async def root():
     return HTMLResponse(
         """
