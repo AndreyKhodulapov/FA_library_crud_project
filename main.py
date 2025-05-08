@@ -7,7 +7,7 @@ app = FastAPI()
 app.include_router(book_router)
 
 @app.get("/", tags=["Start page"])
-async def root():
+async def root() -> HTMLResponse:
     return HTMLResponse(
         """
         <head>
