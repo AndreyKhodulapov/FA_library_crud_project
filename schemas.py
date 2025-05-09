@@ -2,6 +2,9 @@ import datetime
 
 from pydantic import BaseModel, Field, ConfigDict
 
+class MyResponse(BaseModel):
+    ok: bool
+    message: str = Field(max_length=256)
 
 class SBookAdd(BaseModel):
     name: str = Field(max_length=256)

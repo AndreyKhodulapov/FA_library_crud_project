@@ -24,6 +24,7 @@ class BookRepository:
             book_schemas = [
                 SBookGet.model_validate(model)
                 for model in book_models
+                if model is not None
             ]
             return book_schemas
 
@@ -40,11 +41,41 @@ class BookRepository:
             return book_schema
 
     @classmethod
-    async def delete_book_by_id(cls, book_id: int) -> str:
+    async def check_id(cls, identifier: int) -> bool:
+        book = await cls.get_book_by_id(identifier)
+        if not book:
+            return False
+        return True
+
+    @classmethod
+    async def get_by_filter(cls,
+                            filter_data: SBookFilter) -> list[SBookGet] | None:
         async with new_session() as session:
-            book = await cls.get_book_by_id(book_id)
-            if not book:
-                return f"There is no book with {book_id=}"
+            filters = []
+            if filter_data.name is not None:
+                filters.append(Book.name == filter_data.name)
+            if filter_data.author is not None:
+                filters.append(Book.author == filter_data.author)
+            if filter_data.year is not None:
+                filters.append(Book.year == filter_data.year)
+            if filter_data.publisher is not None:
+                filters.append(Book.publisher == filter_data.publisher)
+            query = (select(Book)
+                    .filter(*filters))
+            result = await session.execute(query)
+            book_models = result.scalars().all()
+            book_schemas = [
+                SBookGet.model_validate(model)
+                for model in book_models
+                if model is not None
+            ]
+            return book_schemas
+
+    @classmethod
+    async def delete_book_by_id(cls, book_id: int) -> str | None:
+        async with new_session() as session:
+            if not await cls.check_id(book_id):
+                return None
             stmt = delete(Book).filter(Book.id == book_id)
             await session.execute(stmt)
             await session.commit()
@@ -53,68 +84,31 @@ class BookRepository:
     @classmethod
     async def update_book_info(cls,
                                book_id: int,
-                               update_data: SBookAdd):
+                               update_data: SBookAdd) -> str | None:
         async with new_session() as session:
-            book = await cls.get_book_by_id(book_id)
-            if not book:
-                return f"There is no book with {book_id=}"
+            if not await cls.check_id(book_id):
+                return None
             stmt = (update(Book)
-                    .where(Book.id == book_id)
+                    .filter(Book.id == book_id)
                     .values(**update_data.model_dump()))
             await session.execute(stmt)
             await session.commit()
-            return f"Successfully updated: {book_id=} {book} ==> {update_data}"
+            return f"Successfully updated: {book_id=} ==> {update_data}"
 
     @classmethod
     async def partly_update_book_info(cls,
                                book_id: int,
-                               update_data: SBookFilter):
+                               update_data: SBookFilter) -> str | None:
         async with new_session() as session:
-            book = await cls.get_book_by_id(book_id)
-            if not book:
-                return f"There is no book with {book_id=}"
-            # stmt = (update(Book)
-            #         .where(Book.id == book_id)
-            #         .values(**update_data.model_dump()))
+            if not await cls.check_id(book_id):
+                return None
+            update_values = {key: value
+                             for key, value in update_data.model_dump().items()
+                             if value is not None}
+            stmt = (update(Book)
+                    .filter(Book.id == book_id)
+                    .values(**update_values))
             await session.execute(stmt)
             await session.commit()
-            return f"Successfully updated: {book_id=}: {update_data}"
+            return f"Successfully updated: {book_id=}: {update_values}"
 
-#finish partly
-#check func
-#see by filters
-#hanlders
-
-
-
-
-
-
-
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    book_ex = SBookAdd(
-        name="Arrhithmia treatment",
-        author="Nedostup A.V.",
-        year=2014,
-        publisher="Medpress",
-    )
-
-    book_new = SBookAdd(
-        name="Heart troponines",
-        author="Krikunova O.V.",
-        year=2016,
-        publisher="MedInfo",
-    )
-
-    # res = asyncio.run(BookRepository.add_book(book_ex))
-    # res = asyncio.run(BookRepository.get_all_books())
-    # res = asyncio.run(BookRepository.get_book_by_id(2))
-    # res = asyncio.run(BookRepository.get_book_by_id(20))
-    # res = asyncio.run(BookRepository.delete_book_by_id(3))
-    # res = SBookFilter()
-    res = asyncio.run(BookRepository.update_book_info(3, book_new))
-    print(res)
