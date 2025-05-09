@@ -1,10 +1,12 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from router import router as book_router
+from models import admin_router
 
 
 app = FastAPI()
 app.include_router(book_router)
+app.include_router(admin_router)
 
 @app.get("/", tags=["Start page"])
 async def root() -> HTMLResponse:
